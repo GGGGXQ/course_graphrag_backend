@@ -49,7 +49,7 @@ class MessageList(BaseModel):
 class CreateMessageRequest(BaseModel):
     """创建消息测试请求"""
     conversation_id: UUID
-    role: Literal["user", "assistant", "system"]
+    role: Literal["user", "assistant", "system", "tool"]
     content: str
 
 

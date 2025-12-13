@@ -57,7 +57,7 @@ def get_user_conversations(db: Session, user_id: UUID) -> ConversationList:
     :param user_id: 用户ID
     :return: 会话列表 ConversationList
     """
-    conversations = db.query(DBConversation).filter(DBConversation.user_id == user_id).all()
+    conversations = db.query(DBConversation).filter(DBConversation.user_id == user_id, DBConversation.is_deleted == False).order_by(desc(DBConversation.created_time)).all()
     conversation_list = ConversationList(
         conversations=[
             Conversation(
@@ -166,7 +166,7 @@ def get_messages_and_ebook(db: Session, conversation_id: UUID, user_id: UUID, li
 
     return MessageList(messages=messages, ebook=ebook_obj, total=total_count)
 
-def add_message(db: Session, conversation_id: UUID, role: Literal["user", "assistant", "system"], content: str, user_id: UUID):
+def add_message(db: Session, conversation_id: UUID, role: Literal["user", "assistant", "system", "tool"], content: str, user_id: UUID):
     """创建消息"""
     conv = db.query(DBConversation).filter(DBConversation.id == conversation_id).first()
     if not conv or conv.user_id != user_id:
