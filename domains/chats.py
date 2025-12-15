@@ -57,6 +57,7 @@ class ChatRequest(BaseModel):
     """会话"""
     content: str
     collection: str
+    ebook_id: UUID
     conversation_id: Optional[UUID] = None
 
 

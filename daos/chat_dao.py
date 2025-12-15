@@ -205,7 +205,7 @@ async def _build_messages(
         db=db, conversation_id=conversation_id, user_id=user_id, limit=5
     )
 
-    for msg in history_messages:
+    for msg in history_messages[:-1]:
         if msg.role != "system":
             messages.append({"role": msg.role, "content": msg.content})
     user_question = prompts.USER_QUERY.format(user_query=user_message)
@@ -233,18 +233,22 @@ async def _build_messages(
 
 async def streaming_query(
     db: Session,
-    conversation_id: UUID, 
+    conversation_id: UUID,
+    ebook_id: UUID, 
     user_id: UUID,
     collection: str, 
     message: str,
 ):
     """流式查询，逐步返回结果"""
+    # 保存用户消息
+    add_message(db, conversation_id, "user", message, user_id)
     textbook_content = []      # 默认为空列表
     local_relationship = []    # 默认为空列表 (或者空字符串 "", 取决于你后续怎么处理)
     global_analysis = ""       # 默认为空字符串
     # 1. 返回教科书内容
     try:
         textbook_content = await get_textbook_content(collection, message)
+        add_message(db, conversation_id, "tool", textbook_content, user_id)
         yield f"data: {json.dumps({'type': 'textbook_content', 'data': textbook_content, 'step': 1})}\n\n"
     except Exception as e:
         logger.error(f"获取原文内容失败: {e}")
@@ -253,6 +257,7 @@ async def streaming_query(
     # 2. 返回本地关系查询结果
     try:
         local_relationship = await get_nano_local_relationship(collection, message)
+        add_message(db, conversation_id, "tool", local_relationship, user_id)
         yield f"data: {json.dumps({'type': 'local_relationship', 'data': relationships_csv_to_text(local_relationship), 'step': 2})}\n\n"
     except Exception as e:
         logger.error(f"获取本地关系查询失败: {e}")
@@ -261,6 +266,7 @@ async def streaming_query(
     # 3. 返回全局分析结果
     try:
         global_analysis = await get_nano_global_analysis(collection, message)
+        add_message(db, conversation_id, "tool", global_analysis, user_id)
         yield f"data: {json.dumps({'type': 'global_analysis', 'data': global_analysis, 'step': 3})}\n\n"
     except Exception as e:
         logger.error(f"获取全局分析查询失败: {e}")
@@ -277,8 +283,6 @@ async def streaming_query(
         analysts=global_analysis
     )
     logger.info(f"\n\nprompt:\n{messages}")
-    # 保存用户消息
-    add_message(db, conversation_id, "user", message, user_id)
     try:
         stream_response  = await client.chat.completions.create(
             model=config.ZHIPU_CHAT_MODEL,
@@ -305,7 +309,7 @@ async def streaming_query(
             content=full_content,
             user_id=user_id
         )
-        logger.info(f"\n\nanswer: {assistant_msg}\n")
+        # logger.info(f"\n\nanswer: {assistant_msg}\n")
         # 生成完成后，保存完整消息到数据库
         # assistant_msg = await asyncio.to_thread(add_message, db, conversation_id, "assistant", full_content)
         
