@@ -77,5 +77,5 @@ class DBMessage(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     conversation_id = Column(UUID(as_uuid=True), nullable=False, index=True)
-    role = Column(String(50), nullable=False)  # 'user' or 'assistant' or 'system'
+    role = Column(String(50), nullable=False)  # 'user' or 'assistant' or 'system' or 'tool'
     content = Column(Text, nullable=False)

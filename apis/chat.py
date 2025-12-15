@@ -162,6 +162,7 @@ async def chat(
         chat_dao.streaming_query(
             db=db,
             conversation_id=conversation_id,
+            ebook_id=chat_request.ebook_id,
             collection=chat_request.collection,
             user_id=current_user.id,
             message=chat_request.content
